@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -56,6 +55,8 @@
 
     function openFullscreen() {
       const elem = document.documentElement;
+      const button = document.getElementById("fullscreenBtn");
+
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
       } else if (elem.webkitRequestFullscreen) {
@@ -64,7 +65,11 @@
         elem.msRequestFullscreen();
       } else {
         alert("Modo tela cheia não suportado neste navegador.");
+        return;
       }
+
+      // Oculta o botão após entrar em fullscreen
+      button.style.display = "none";
     }
 
     cycleDashboards();
@@ -72,3 +77,4 @@
   </script>
 </body>
 </html>
+
