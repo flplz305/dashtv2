@@ -1,40 +1,20 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Ciclo de Dashboards</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: #000;
-    }
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
+    iframe { width:100%; height:100%; border:none; background:#000; }
     #fullscreenBtn {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      z-index: 9999;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #1a73e8;
-      color: white;
-      cursor: pointer;
+      position:absolute; bottom:10px; right:10px; z-index:9999;
+      padding:10px 20px; font-size:16px; border:none; border-radius:8px;
+      background:#1a73e8; color:#fff; cursor:pointer;
     }
   </style>
 </head>
 <body>
   <iframe id="lookerFrame" src=""></iframe>
-
   <button id="fullscreenBtn" onclick="openFullscreen()">Tela Cheia</button>
 
   <script>
@@ -42,10 +22,10 @@
       "https://lookerstudio.google.com/embed/reporting/22049608-7769-4771-950c-f8e0715b3813/page/qzTwE",
       "https://lookerstudio.google.com/embed/reporting/b6b28955-f492-46c1-af56-76c2b7bd0dae/page/p_90t3bvjrvd",
 
-      // Google Agenda — visualização do DIA (hoje), em pt-BR
-      "https://calendar.google.com/calendar/embed?src=monique.moreira%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
-      "https://calendar.google.com/calendar/embed?src=thiago.cardoso%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
-      "https://calendar.google.com/calendar/embed?src=fernando%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0"
+      // Google Agenda — Dia de hoje (pt-BR), limpo
+      "https://calendar.google.com/calendar/embed?src=monique.moreira%40metodo12p.com.br&ctz=America%2FSao_Paulo&hl=pt_BR&mode=DAY&dates=20000101/20991231&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
+      "https://calendar.google.com/calendar/embed?src=thiago.cardoso%40metodo12p.com.br&ctz=America%2FSao_Paulo&hl=pt_BR&mode=DAY&dates=20000101/20991231&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
+      "https://calendar.google.com/calendar/embed?src=fernando%40metodo12p.com.br&ctz=America%2FSao_Paulo&hl=pt_BR&mode=DAY&dates=20000101/20991231&showTabs=0&showCalendars=0&showPrint=0&showTz=0"
     ];
 
     let currentIndex = 0;
@@ -60,16 +40,10 @@
       const elem = document.documentElement;
       const button = document.getElementById("fullscreenBtn");
       const hideButton = () => button.style.display = "none";
-
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().then(hideButton).catch(console.error);
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen(); hideButton();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen(); hideButton();
-      } else {
-        alert("Modo tela cheia não suportado neste navegador.");
-      }
+      if (elem.requestFullscreen) elem.requestFullscreen().then(hideButton).catch(console.error);
+      else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); hideButton(); }
+      else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); hideButton(); }
+      else alert("Modo tela cheia não suportado neste navegador.");
     }
 
     cycleDashboards();
