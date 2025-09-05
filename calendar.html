@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agenda - Dia</title>
+
+  <!-- FullCalendar (bundle global + plugin iCalendar) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    html, body { height:100%; margin:0; background:#000; }
+    #calendar { height:100%; max-height:100vh; }
+    .fc-theme-standard { --fc-page-bg-color:#000; --fc-border-color:#222; --fc-neutral-bg-color:#0f0f0f; --fc-now-indicator-color:#1a73e8; }
+    .fc .fc-toolbar, .fc .fc-header-toolbar { display:none; }
+    .fc .fc-scrollgrid, .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color:#222; }
+    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event, .fc .fc-timegrid-slot-lane { color:#ddd; }
+  </style>
+</head>
+<body>
+  <div id="calendar"></div>
+
+  <script>
+    // Lê ?ics=<url_ical> da query string
+    const qs = new URLSearchParams(location.search);
+    const icsUrl = qs.get("ics");
+    if (!icsUrl) {
+      document.body.innerHTML = "<p style='color:#fff;font:16px/1.5 sans-serif;padding:16px'>Faltou o parâmetro <b>?ics=</b> com o link iCal.</p>";
+    } else {
+      const calendarEl = document.getElementById("calendar");
+      const cal = new FullCalendar.Calendar(calendarEl, {
+        initialView: "timeGridDay",         // grade por horas (1 dia)
+        timeZone: "America/Sao_Paulo",
+        locale: "pt-br",
+        height: "100%",
+        expandRows: true,
+        nowIndicator: true,
+        headerToolbar: false,
+        slotMinTime: "07:00:00",            // ajuste se quiser
+        slotMaxTime: "20:30:00",
+        eventTimeFormat: { hour: "2-digit", minute: "2-digit" },
+        events: { url: icsUrl, format: "ics" } // carrega do iCal
+      });
+      cal.render();
+    }
+  </script>
+</body>
+</html>
