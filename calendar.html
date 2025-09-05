@@ -5,44 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agenda - Dia</title>
 
-  <!-- FullCalendar (bundle global + plugin iCalendar) -->
+  <!-- FullCalendar core + css -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <!-- Plugin iCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
+
+  <!-- Locales (para pt-br) -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
 
   <style>
     html, body { height:100%; margin:0; background:#000; }
     #calendar { height:100%; max-height:100vh; }
     .fc-theme-standard { --fc-page-bg-color:#000; --fc-border-color:#222; --fc-neutral-bg-color:#0f0f0f; --fc-now-indicator-color:#1a73e8; }
-    .fc .fc-toolbar, .fc .fc-header-toolbar { display:none; }
-    .fc .fc-scrollgrid, .fc .fc-timegrid-axis, .fc .fc-timegrid-slot { border-color:#222; }
-    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event, .fc .fc-timegrid-slot-lane { color:#ddd; }
+    .fc .fc-toolbar, .fc .fc-header-toolbar { color:#ddd; }
+    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color:#ddd; }
+    .badge { position:fixed; left:10px; bottom:10px; background:#222; color:#fff; padding:6px 10px; border-radius:8px; font:12px/1.4 sans-serif; }
+    .badge.err { background:#900; }
   </style>
 </head>
 <body>
   <div id="calendar"></div>
+  <div id="status" class="badge">Carregando…</div>
 
   <script>
-    // Lê ?ics=<url_ical> da query string
     const qs = new URLSearchParams(location.search);
     const icsUrl = qs.get("ics");
+
+    const status = document.getElementById("status");
+    const ok  = (m)=>{ status.textContent=m; status.classList.remove('err'); };
+    const err = (m)=>{ status.textContent=m; status.classList.add('err'); };
+
     if (!icsUrl) {
-      document.body.innerHTML = "<p style='color:#fff;font:16px/1.5 sans-serif;padding:16px'>Faltou o parâmetro <b>?ics=</b> com o link iCal.</p>";
+      err("Faltou ?ics= (URL do iCal)");
     } else {
       const calendarEl = document.getElementById("calendar");
       const cal = new FullCalendar.Calendar(calendarEl, {
-        initialView: "timeGridDay",         // grade por horas (1 dia)
+        initialView: "timeGridDay",       // grade por horas (1 dia)
         timeZone: "America/Sao_Paulo",
         locale: "pt-br",
         height: "100%",
         expandRows: true,
         nowIndicator: true,
-        headerToolbar: false,
-        slotMinTime: "07:00:00",            // ajuste se quiser
-        slotMaxTime: "20:30:00",
+        allDaySlot: false,
+        slotMinTime: "00:00:00",
+        slotMaxTime: "24:00:00",
+        headerToolbar: { start: "", center: "title", end: "" },
         eventTimeFormat: { hour: "2-digit", minute: "2-digit" },
-        events: { url: icsUrl, format: "ics" } // carrega do iCal
+
+        events: {
+          url: icsUrl, format: "ics",
+          failure: (e) => {
+            console.error("Falha ao carregar ICS:", e);
+            err("Falha ao carregar ICS (CORS/link inválido?). Veja Console (F12).");
+          }
+        },
+
+        eventsSet: (events) => {
+          ok(`${events.length} evento(s) carregado(s)`);
+          console.log("Eventos:", events.map(e => ({title:e.title, start:e.start, end:e.end})));
+        }
       });
+
       cal.render();
     }
   </script>
