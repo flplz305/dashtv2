@@ -19,18 +19,36 @@
     .fc-theme-standard { --fc-page-bg-color:#000; --fc-border-color:#222; --fc-now-indicator-color:#1a73e8; }
     .fc .fc-toolbar, .fc .fc-header-toolbar { color:#ddd; }
     .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color:#ddd; }
-    .badge { position:fixed; left:10px; bottom:10px; background:#222; color:#fff; padding:6px 10px; border-radius:8px; font:12px/1.4 sans-serif; z-index:9999; }
+
+    /* selos */
+    .badge {
+      position: fixed; left: 10px; bottom: 10px; z-index: 9999;
+      background:#222; color:#fff; padding:6px 10px; border-radius:8px;
+      font: 12px/1.4 sans-serif;
+    }
     .badge.err { background:#900; }
+    .who {
+      position: fixed; right: 10px; top: 10px; z-index: 9999;
+      background: rgba(0,0,0,.6); border:1px solid #333; color:#fff;
+      padding:6px 10px; border-radius:8px; font: 14px/1.4 sans-serif;
+      backdrop-filter: blur(2px);
+    }
   </style>
 </head>
 <body>
   <div id="calendar"></div>
   <div id="status" class="badge">Carregando…</div>
+  <div id="who" class="who" style="display:none;"></div>
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const icsUrl = qs.get("ics");                // precisa vir URL-encoded (pode ser pelo Worker)
-    const initialDate = qs.get("date") || "";    // opcional: YYYY-MM-DD
+    const icsUrl      = qs.get("ics");                 // precisa vir URL-encoded (pode ser via seu Worker)
+    const initialDate = qs.get("date") || "";          // opcional: YYYY-MM-DD
+    const name        = qs.get("name") || "";          // opcional: identificação (ex.: "Thiago Cardoso")
+
+    // Selo com o nome da agenda
+    const whoEl = document.getElementById("who");
+    if (name) { whoEl.textContent = name; whoEl.style.display = "block"; }
 
     const statusEl = document.getElementById("status");
     const ok  = (m)=>{ statusEl.textContent=m; statusEl.classList.remove("err"); };
@@ -48,10 +66,10 @@
       const vevents = comp.getAllSubcomponents('vevent');
       const events = vevents.map(ve => {
         const e = new ICAL.Event(ve);
-        const start = e.startDate.toJSDate();
-        const end   = e.endDate ? e.endDate.toJSDate() : null;
-        const allDay = e.startDate.isDate; // true p/ "dia inteiro"
-        const title = e.summary || 'Sem título';
+        const start  = e.startDate.toJSDate();
+        const end    = e.endDate ? e.endDate.toJSDate() : null;
+        const allDay = e.startDate.isDate;
+        const title  = e.summary || 'Sem título'; // se o ICS tiver detalhes, aparece o nome real
         return { title, start, end, allDay };
       });
       return events;
