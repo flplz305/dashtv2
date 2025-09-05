@@ -15,6 +15,7 @@
       width: 100%;
       height: 100%;
       border: none;
+      background: #000;
     }
     #fullscreenBtn {
       position: absolute;
@@ -40,9 +41,11 @@
     const dashboards = [
       "https://lookerstudio.google.com/embed/reporting/22049608-7769-4771-950c-f8e0715b3813/page/qzTwE",
       "https://lookerstudio.google.com/embed/reporting/b6b28955-f492-46c1-af56-76c2b7bd0dae/page/p_90t3bvjrvd",
-      "https://calendar.google.com/calendar/embed?src=monique.moreira%40metodo12p.com.br&ctz=America%2FSao_Paulo",
-      "https://calendar.google.com/calendar/embed?src=thiago.cardoso%40metodo12p.com.br&ctz=America%2FSao_Paulo",
-      "https://calendar.google.com/calendar/embed?src=fernando%40metodo12p.com.br&ctz=America%2FSao_Paulo"
+
+      // Google Agenda — visualização do DIA (hoje), em pt-BR
+      "https://calendar.google.com/calendar/embed?src=monique.moreira%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
+      "https://calendar.google.com/calendar/embed?src=thiago.cardoso%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0",
+      "https://calendar.google.com/calendar/embed?src=fernando%40metodo12p.com.br&ctz=America%2FSao_Paulo&mode=DAY&hl=pt_BR&showTabs=0&showCalendars=0&showPrint=0&showTz=0"
     ];
 
     let currentIndex = 0;
@@ -56,17 +59,14 @@
     function openFullscreen() {
       const elem = document.documentElement;
       const button = document.getElementById("fullscreenBtn");
-
       const hideButton = () => button.style.display = "none";
 
       if (elem.requestFullscreen) {
         elem.requestFullscreen().then(hideButton).catch(console.error);
       } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-        hideButton();
+        elem.webkitRequestFullscreen(); hideButton();
       } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
-        hideButton();
+        elem.msRequestFullscreen(); hideButton();
       } else {
         alert("Modo tela cheia não suportado neste navegador.");
       }
