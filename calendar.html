@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agenda - Dia (ICS direto)</title>
+  <title>Agenda - Dia (ICS direto, TZ fixo)</title>
 
   <!-- FullCalendar -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
@@ -20,33 +20,38 @@
     .fc .fc-toolbar, .fc .fc-header-toolbar { color:#ddd; }
     .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color:#ddd; }
 
-    /* selos */
+    /* selo grande com o nome da agenda */
+    .who {
+      position: fixed; right: 14px; top: 12px; z-index: 9999;
+      background: rgba(0,0,0,.65);
+      border: 1px solid #333; border-radius: 10px;
+      padding: 8px 14px;
+      color: #fff; font: 700 22px/1.2 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      letter-spacing: .2px; backdrop-filter: blur(2px);
+    }
+
+    /* badge de status (debug leve) */
     .badge {
       position: fixed; left: 10px; bottom: 10px; z-index: 9999;
       background:#222; color:#fff; padding:6px 10px; border-radius:8px;
       font: 12px/1.4 sans-serif;
     }
     .badge.err { background:#900; }
-    .who {
-      position: fixed; right: 10px; top: 10px; z-index: 9999;
-      background: rgba(0,0,0,.6); border:1px solid #333; color:#fff;
-      padding:6px 10px; border-radius:8px; font: 14px/1.4 sans-serif;
-      backdrop-filter: blur(2px);
-    }
   </style>
 </head>
 <body>
   <div id="calendar"></div>
-  <div id="status" class="badge">Carregando…</div>
   <div id="who" class="who" style="display:none;"></div>
+  <div id="status" class="badge">Carregando…</div>
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const icsUrl      = qs.get("ics");                 // precisa vir URL-encoded (pode ser via seu Worker)
+    const icsUrl      = qs.get("ics");                 // URL do iCal (via Worker), obrigatória
     const initialDate = qs.get("date") || "";          // opcional: YYYY-MM-DD
-    const name        = qs.get("name") || "";          // opcional: identificação (ex.: "Thiago Cardoso")
+    const name        = qs.get("name") || "";          // opcional: identificação exibida no selo
+    const tz          = qs.get("tz") || "America/Sao_Paulo"; // fuso desejado
 
-    // Selo com o nome da agenda
+    // selo com o nome da agenda
     const whoEl = document.getElementById("who");
     if (name) { whoEl.textContent = name; whoEl.style.display = "block"; }
 
@@ -54,23 +59,59 @@
     const ok  = (m)=>{ statusEl.textContent=m; statusEl.classList.remove("err"); };
     const err = (m)=>{ statusEl.textContent=m; statusEl.classList.add("err"); };
 
+    // formata YYYY-MM-DDTHH:mm:ss no fuso tz (sem sufixo Z), para o FullCalendar interpretar nesse fuso
+    function fmtYMDHMSInTZ(epochMs, tz) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz, hour12: false,
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      }).formatToParts(new Date(epochMs))
+      .reduce((acc,p)=> (acc[p.type]=p.value, acc), {});
+      return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+    }
+    // formata YYYY-MM-DD no fuso tz (para eventos all-day)
+    function fmtYMDInTZ(epochMs, tz) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date(epochMs))
+      .reduce((acc,p)=> (acc[p.type]=p.value, acc), {});
+      return `${parts.year}-${parts.month}-${parts.day}`;
+    }
+
     async function fetchIcs(url) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.text();
     }
 
-    function parseIcsToEvents(icsText) {
+    function parseIcsToEvents(icsText, tz) {
       const jcal = ICAL.parse(icsText);
       const comp = new ICAL.Component(jcal);
-      const vevents = comp.getAllSubcomponents('vevent');
+      const vevents = comp.getAllSubcomponents("vevent");
       const events = vevents.map(ve => {
         const e = new ICAL.Event(ve);
-        const start  = e.startDate.toJSDate();
-        const end    = e.endDate ? e.endDate.toJSDate() : null;
-        const allDay = e.startDate.isDate;
-        const title  = e.summary || 'Sem título'; // se o ICS tiver detalhes, aparece o nome real
-        return { title, start, end, allDay };
+
+        // epoch UTC em ms
+        const startMs = e.startDate.toUnixTime() * 1000;
+        const endMs   = e.endDate ? (e.endDate.toUnixTime() * 1000) : null;
+
+        if (e.startDate.isDate) {
+          // all-day
+          return {
+            title: e.summary || "Sem título",
+            allDay: true,
+            start: fmtYMDInTZ(startMs, tz),
+            end: endMs ? fmtYMDInTZ(endMs, tz) : undefined
+          };
+        } else {
+          // com hora
+          return {
+            title: e.summary || "Sem título",
+            allDay: false,
+            start: fmtYMDHMSInTZ(startMs, tz),
+            end: endMs ? fmtYMDHMSInTZ(endMs, tz) : undefined
+          };
+        }
       });
       return events;
     }
@@ -81,7 +122,7 @@
       let events = [];
       try {
         const icsText = await fetchIcs(icsUrl);
-        events = parseIcsToEvents(icsText);
+        events = parseIcsToEvents(icsText, tz);
         console.log("Eventos (parsed):", events);
       } catch (e) {
         console.error("Falha ao baixar/parsear ICS:", e);
@@ -91,7 +132,7 @@
 
       const options = {
         initialView: "timeGridDay",
-        timeZone: "America/Sao_Paulo",
+        timeZone: tz,                    // garante render no fuso desejado
         locale: "pt-br",
         height: "100%",
         expandRows: true,
