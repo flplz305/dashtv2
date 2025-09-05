@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Ciclo de Dashboards</title>
   <style>
     html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
@@ -18,10 +18,26 @@
   <button id="fullscreenBtn" onclick="openFullscreen()">Tela Cheia</button>
 
   <script>
+    const worker = "https://long-pine-4dbc.felipe-5cb.workers.dev/?url=";
+
+    // Troque para 'private-.../basic.ics' se precisar ver títulos reais (e não "Busy")
+    const ics = {
+      monique:  "https://calendar.google.com/calendar/ical/monique.moreira%40metodo12p.com.br/public/basic.ics",
+      thiago:   "https://calendar.google.com/calendar/ical/thiago.cardoso%40metodo12p.com.br/public/basic.ics",
+      fernando: "https://calendar.google.com/calendar/ical/fernando%40metodo12p.com.br/public/basic.ics"
+    };
+
+    // monta URL do calendar.html via Worker + adiciona o 'name' para identificação
+    const agenda = (url, name) =>
+      "calendar.html?ics=" + encodeURIComponent(worker + encodeURIComponent(url)) +
+      "&name=" + encodeURIComponent(name);
+
     const dashboards = [
-      "calendar.html?ics=" + encodeURIComponent("https://calendar.google.com/calendar/ical/thiago.cardoso%40metodo12p.com.br/public/basic.ics"),
+      agenda(ics.monique,  "Agenda — Monique"),
+      agenda(ics.thiago,   "Agenda — Thiago"),
+      agenda(ics.fernando, "Agenda — Fernando"),
       "https://lookerstudio.google.com/embed/reporting/22049608-7769-4771-950c-f8e0715b3813/page/qzTwE",
-      "https://lookerstudio.google.com/embed/reporting/b6b28955-f492-46c1-af56-76c2b7bd0dae/page/p_90t3bvjrvd",
+      "https://lookerstudio.google.com/embed/reporting/b6b28955-f492-46c1-af56-76c2b7bd0dae/page/p_90t3bvjrvd"
     ];
 
     let currentIndex = 0;
