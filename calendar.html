@@ -3,37 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agenda - Dia</title>
+  <title>Agenda - Dia (ICS direto)</title>
 
-  <!-- FullCalendar (CSS + JS global build) -->
+  <!-- FullCalendar -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
-  <!-- Plugin iCalendar (para ler .ics) -->
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
-
-  <!-- Locales (pt-br etc.) -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
 
+  <!-- ical.js para parsear .ics -->
+  <script src="https://cdn.jsdelivr.net/npm/ical.js@1.4.0/build/ical.min.js"></script>
+
   <style>
-    html, body { height: 100%; margin: 0; background: #000; }
-    #calendar { height: 100%; max-height: 100vh; }
-    /* tema escuro simples */
-    .fc-theme-standard {
-      --fc-page-bg-color: #000;
-      --fc-border-color: #222;
-      --fc-now-indicator-color: #1a73e8;
-    }
-    .fc .fc-toolbar, .fc .fc-header-toolbar { color: #ddd; }
-    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color: #ddd; }
-    /* badge de status (debug leve) */
-    .badge {
-      position: fixed; left: 10px; bottom: 10px;
-      background: #222; color: #fff;
-      padding: 6px 10px; border-radius: 8px;
-      font: 12px/1.4 sans-serif; z-index: 9999;
-    }
-    .badge.err { background: #900; }
+    html, body { height:100%; margin:0; background:#000; }
+    #calendar { height:100%; max-height:100vh; }
+    .fc-theme-standard { --fc-page-bg-color:#000; --fc-border-color:#222; --fc-now-indicator-color:#1a73e8; }
+    .fc .fc-toolbar, .fc .fc-header-toolbar { color:#ddd; }
+    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color:#ddd; }
+    .badge { position:fixed; left:10px; bottom:10px; background:#222; color:#fff; padding:6px 10px; border-radius:8px; font:12px/1.4 sans-serif; z-index:9999; }
+    .badge.err { background:#900; }
   </style>
 </head>
 <body>
@@ -42,52 +29,71 @@
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const icsUrl = qs.get("ics");              // deve vir URL-encoded (pode ser via seu Worker)
-    const initialDate = qs.get("date") || "";  // opcional: YYYY-MM-DD
+    const icsUrl = qs.get("ics");                // precisa vir URL-encoded (pode ser pelo Worker)
+    const initialDate = qs.get("date") || "";    // opcional: YYYY-MM-DD
 
     const statusEl = document.getElementById("status");
-    const ok  = (m) => { statusEl.textContent = m; statusEl.classList.remove("err"); };
-    const err = (m) => { statusEl.textContent = m; statusEl.classList.add("err"); };
+    const ok  = (m)=>{ statusEl.textContent=m; statusEl.classList.remove("err"); };
+    const err = (m)=>{ statusEl.textContent=m; statusEl.classList.add("err"); };
 
-    if (!icsUrl) {
-      err("Faltou ?ics= (URL do iCal)");
-    } else {
-      const calendarEl = document.getElementById("calendar");
+    async function fetchIcs(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    }
+
+    function parseIcsToEvents(icsText) {
+      const jcal = ICAL.parse(icsText);
+      const comp = new ICAL.Component(jcal);
+      const vevents = comp.getAllSubcomponents('vevent');
+      const events = vevents.map(ve => {
+        const e = new ICAL.Event(ve);
+        const start = e.startDate.toJSDate();
+        const end   = e.endDate ? e.endDate.toJSDate() : null;
+        const allDay = e.startDate.isDate; // true p/ "dia inteiro"
+        const title = e.summary || 'Sem título';
+        return { title, start, end, allDay };
+      });
+      return events;
+    }
+
+    async function main(){
+      if (!icsUrl) { err("Faltou ?ics="); return; }
+
+      let events = [];
+      try {
+        const icsText = await fetchIcs(icsUrl);
+        events = parseIcsToEvents(icsText);
+        console.log("Eventos (parsed):", events);
+      } catch (e) {
+        console.error("Falha ao baixar/parsear ICS:", e);
+        err("Falha ao baixar/parsear ICS. Veja Console (F12).");
+        return;
+      }
+
       const options = {
-        initialView: "timeGridDay",          // grade por horas (1 dia)
+        initialView: "timeGridDay",
         timeZone: "America/Sao_Paulo",
         locale: "pt-br",
         height: "100%",
         expandRows: true,
         nowIndicator: true,
-        allDaySlot: true,                    // mostra eventos de dia inteiro (feriados)
+        allDaySlot: true,
         slotMinTime: "00:00:00",
         slotMaxTime: "24:00:00",
         headerToolbar: { start: "", center: "title", end: "" },
         eventTimeFormat: { hour: "2-digit", minute: "2-digit" },
-
-        events: {
-          url: icsUrl,                       // ex.: https://SEU_WORKER.workers.dev/?url=ENCODE(https://.../basic.ics)
-          format: "ics",
-          failure: (e) => {
-            console.error("Falha ao carregar ICS:", e);
-            err("Falha ao carregar ICS (CORS/link inválido?). Veja Console (F12).");
-          }
-        },
-
-        eventsSet: (events) => {
-          ok(`${events.length} evento(s) carregado(s)`);
-          console.log("Eventos:", events.map(e => ({
-            title: e.title, start: e.start, end: e.end, allDay: e.allDay
-          })));
-        }
+        events
       };
+      if (initialDate) options.initialDate = initialDate;
 
-      if (initialDate) options.initialDate = initialDate; // força abrir numa data específica
-
-      const calendar = new FullCalendar.Calendar(calendarEl, options);
+      const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), options);
       calendar.render();
+
+      ok(`${events.length} evento(s) carregado(s)`);
     }
+
+    main();
   </script>
 </body>
 </html>
