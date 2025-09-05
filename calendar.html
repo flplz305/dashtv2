@@ -16,26 +16,16 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
 
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000;
-    }
-    #calendar {
-      height: 100%;
-      max-height: 100vh;
-    }
+    html, body { height: 100%; margin: 0; background: #000; }
+    #calendar { height: 100%; max-height: 100vh; }
     /* tema escuro simples */
     .fc-theme-standard {
       --fc-page-bg-color: #000;
       --fc-border-color: #222;
       --fc-now-indicator-color: #1a73e8;
     }
-    .fc .fc-toolbar,
-    .fc .fc-header-toolbar { color: #ddd; }
-    .fc .fc-timegrid-slot-label-cushion,
-    .fc .fc-col-header-cell-cushion,
-    .fc .fc-event { color: #ddd; }
+    .fc .fc-toolbar, .fc .fc-header-toolbar { color: #ddd; }
+    .fc .fc-timegrid-slot-label-cushion, .fc .fc-col-header-cell-cushion, .fc .fc-event { color: #ddd; }
     /* badge de status (debug leve) */
     .badge {
       position: fixed; left: 10px; bottom: 10px;
@@ -52,7 +42,8 @@
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const icsUrl = qs.get("ics"); // deve vir URL-encoded (pode ser via seu Worker)
+    const icsUrl = qs.get("ics");              // deve vir URL-encoded (pode ser via seu Worker)
+    const initialDate = qs.get("date") || "";  // opcional: YYYY-MM-DD
 
     const statusEl = document.getElementById("status");
     const ok  = (m) => { statusEl.textContent = m; statusEl.classList.remove("err"); };
@@ -62,14 +53,14 @@
       err("Faltou ?ics= (URL do iCal)");
     } else {
       const calendarEl = document.getElementById("calendar");
-      const calendar = new FullCalendar.Calendar(calendarEl, {
+      const options = {
         initialView: "timeGridDay",          // grade por horas (1 dia)
         timeZone: "America/Sao_Paulo",
         locale: "pt-br",
         height: "100%",
         expandRows: true,
         nowIndicator: true,
-        allDaySlot: true,                    // <- MOSTRA eventos de dia inteiro (feriados)
+        allDaySlot: true,                    // mostra eventos de dia inteiro (feriados)
         slotMinTime: "00:00:00",
         slotMaxTime: "24:00:00",
         headerToolbar: { start: "", center: "title", end: "" },
@@ -86,13 +77,15 @@
 
         eventsSet: (events) => {
           ok(`${events.length} evento(s) carregado(s)`);
-          // Log leve pra depurar
           console.log("Eventos:", events.map(e => ({
             title: e.title, start: e.start, end: e.end, allDay: e.allDay
           })));
         }
-      });
+      };
 
+      if (initialDate) options.initialDate = initialDate; // força abrir numa data específica
+
+      const calendar = new FullCalendar.Calendar(calendarEl, options);
       calendar.render();
     }
   </script>
